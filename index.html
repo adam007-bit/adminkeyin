@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal Guru BDP SEMSIRA</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: 'Poppins', sans-serif; background:#f4f6f9; padding:20px; }
+h2 { color:#004080; text-align:center; margin-bottom:20px; }
+.card { max-width:800px; margin:auto; padding:20px; border-radius:15px; box-shadow:0 6px 18px rgba(0,0,0,0.1); margin-bottom:30px; }
+#msg { text-align:center; margin-top:10px; font-weight:bold; }
+table { width:100%; margin-top:20px; }
+th, td { text-align:center; }
+.btn-edit, .btn-delete { margin:0 2px; }
+</style>
+</head>
+<body>
+
+<h2>📝 Key In Kes Disiplin</h2>
+<div class="card">
+  <form id="disciplineForm">
+    <select id="kelas" class="form-select" required>
+      <option value="">Pilih Kelas</option>
+      <option>5A</option><option>5B</option><option>5C</option>
+    </select>
+    <select id="kategori" class="form-select" required>
+      <option value="">Pilih Kategori</option>
+      <option>Ringan</option><option>Sederhana</option><option>Berat</option>
+    </select>
+    <input type="text" id="jenis" class="form-control" placeholder="Jenis Kesalahan" required>
+    <input type="text" id="nama" class="form-control" placeholder="Nama Pelajar" required>
+    <button type="submit" class="btn btn-primary w-100 mt-3">Hantar</button>
+  </form>
+  <p id="msg"></p>
+</div>
+
+<h2>📋 Senarai Kes</h2>
+<div class="card">
+  <div class="mb-3 d-flex gap-2 flex-wrap justify-content-center">
+    <div>
+      <label>Pilih Bulan:</label>
+      <input type="month" id="monthFilter" class="form-control">
+    </div>
+    <div>
+      <label>Pilih Minggu:</label>
+      <input type="week" id="weekFilter" class="form-control">
+    </div>
+    <button id="resetFilter" class="btn btn-secondary mt-2">Reset Filter</button>
+  </div>
+  <table class="table table-bordered" id="kesTable">
+    <thead class="table-dark">
+      <tr>
+        <th>Kelas</th><th>Nama</th><th>Kategori</th><th>Jenis</th><th>Tarikh</th><th>Tindakan</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<h2>📊 Statistik Kes Disiplin</h2>
+<div class="card">
+  <canvas id="barChart"></canvas>
+  <canvas id="pieChart"></canvas>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+// 🔹 Ganti config ni dengan Firebase project kau
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Form
+const form = document.getElementById("disciplineForm");
+const msg = document.getElementById("msg");
+form.addEventListener("submit", async e=>{
+  e.preventDefault();
+  try{
+    await addDoc(collection(db,"kesDisiplin"),{
+      kelas: document.getElementById("kelas").value,
+      kategori: document.getElementById("kategori").value,
+      jenis: document.getElementById("jenis").value,
+      nama: document.getElementById("nama").value,
+      tarikh: new Date()
+    });
+    msg.innerText="✅ Kes berjaya direkod!";
+    form.reset();
+  }catch(err){
+    msg.innerText="❌ Ralat berlaku!";
+    console.error(err);
+  }
+});
+
+// Chart
+const barCtx = document.getElementById("barChart").getContext("2d");
+const pieCtx = document.getElementById("pieChart").getContext("2d");
+let barChart, pieChart;
+
+// Table & Filter
+const kesTable = document.getElementById("kesTable").querySelector("tbody");
+const monthFilter = document.getElementById("monthFilter");
+const weekFilter = document.getElementById("weekFilter");
+const resetFilter = document.getElementById("resetFilter");
+
+function filterDocs(docs){
+  const monthVal = monthFilter.value;
+  const weekVal = weekFilter.value;
+  return docs.filter(d=>{
+    const tarikh = d.data().tarikh.toDate();
+    let include = true;
+    if(monthVal){
+      const [y,m] = monthVal.split('-').map(Number);
+      include = include && (tarikh.getFullYear() === y && tarikh.getMonth()+1 === m);
+    }
+    if(weekVal){
+      const [y,w] = weekVal.split('-W').map(Number);
+      const startOfWeek = new Date(y,0,1 + (w-1)*7);
+      const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate()+6);
+      include = include && (tarikh >= startOfWeek && tarikh <= endOfWeek);
+    }
+    return include;
+  });
+}
+
+function updateUI(filtered){
+  // Table
+  kesTable.innerHTML = '';
+  filtered.forEach(docSnap=>{
+    const d = docSnap.data();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.kelas}</td>
+      <td>${d.nama}</td>
+      <td>${d.kategori}</td>
+      <td>${d.jenis}</td>
+      <td>${d.tarikh.toDate().toLocaleDateString()}</td>
+      <td>
+        <button class="btn btn-sm btn-warning btn-edit">Edit</button>
+        <button class="btn btn-sm btn-danger btn-delete">Delete</button>
+      </td>`;
+    kesTable.appendChild(tr);
+
+    // Edit
+    tr.querySelector(".btn-edit").onclick = async ()=>{
+      const newJenis = prompt("Masukkan jenis baru:", d.jenis);
+      if(newJenis) await updateDoc(doc(db,"kesDisiplin",docSnap.id), {jenis:newJenis});
+    };
+    // Delete
+    tr.querySelector(".btn-delete").onclick = async ()=>{
+      if(confirm("Confirm delete?")) await deleteDoc(doc(db,"kesDisiplin",docSnap.id));
+    };
+  });
+
+  // Statistik
+  const data = {};
+  let total = {Ringan:0,Sederhana:0,Berat:0};
+  filtered.forEach(docSnap=>{
+    const d = docSnap.data();
+    const kls = d.kelas, kat = d.kategori;
+    if(!data[kls]) data[kls]={Ringan:0,Sederhana:0,Berat:0};
+    data[kls][kat]++;
+    total[kat]++;
+  });
+
+  const labels = Object.keys(data);
+  const ringan = labels.map(l=>data[l].Ringan);
+  const sederhana = labels.map(l=>data[l].Sederhana);
+  const berat = labels.map(l=>data[l].Berat);
+
+  if(barChart) barChart.destroy();
+  barChart = new Chart(barCtx,{
+    type:'bar',
+    data:{
+      labels:labels,
+      datasets:[
+        {label:'Ringan', data:ringan, backgroundColor:'#ffc107'},
+        {label:'Sederhana', data:sederhana, backgroundColor:'#dc3545'},
+        {label:'Berat', data:berat, backgroundColor:'#343a40'}
+      ]
+    },
+    options:{responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}}}
+  });
+
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(pieCtx,{
+    type:'pie',
+    data:{
+      labels:['Ringan','Sederhana','Berat'],
+      datasets:[{data:[total.Ringan,total.Sederhana,total.Berat],backgroundColor:['#ffc107','#dc3545','#343a40']}]
+    },
+    options:{responsive:true}
+  });
+}
+
+// Snapshot Firestore realtime
+onSnapshot(collection(db,"kesDisiplin"), snap=>{
+  const docs = snap.docs;
+  const filtered = filterDocs(docs);
+  updateUI(filtered);
+});
+
+// Filter event
+monthFilter.addEventListener("change",()=>{ weekFilter.value=''; });
+weekFilter.addEventListener("change",()=>{ monthFilter.value=''; });
+resetFilter.addEventListener("click",()=>{
+  monthFilter.value=''; weekFilter.value='';
+});
+</script>
+
+</body>
+</html>
