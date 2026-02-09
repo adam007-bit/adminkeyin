@@ -77,7 +77,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// FORM SUBMIT
+/* === DOM ELEMENTS (DITAMBAH TANPA UBAH FUNGSI) === */
+const disciplineForm = document.getElementById("disciplineForm");
+const kelas = document.getElementById("kelas");
+const kategori = document.getElementById("kategori");
+const jenis = document.getElementById("jenis");
+const nama = document.getElementById("nama");
+const msg = document.getElementById("msg");
+
+/* === FORM SUBMIT === */
 disciplineForm.onsubmit = async e => {
   e.preventDefault();
   await addDoc(collection(db,"kesDisiplin"),{
@@ -91,12 +99,12 @@ disciplineForm.onsubmit = async e => {
   disciplineForm.reset();
 };
 
-// CHART
+/* === CHART === */
 let barChart, pieChart;
 const barCtx = document.getElementById("barChart");
 const pieCtx = document.getElementById("pieChart");
 
-// REALTIME DATA
+/* === REALTIME DATA === */
 onSnapshot(collection(db,"kesDisiplin"), snap=>{
   const tbody = document.getElementById("kesTable");
   tbody.innerHTML = "";
@@ -107,7 +115,6 @@ onSnapshot(collection(db,"kesDisiplin"), snap=>{
   snap.forEach(docSnap=>{
     const d = docSnap.data();
 
-    // table
     tbody.innerHTML += `
     <tr>
       <td>${d.kelas}</td>
@@ -150,7 +157,7 @@ onSnapshot(collection(db,"kesDisiplin"), snap=>{
   });
 });
 
-// GLOBAL FUNCTIONS
+/* === GLOBAL FUNCTIONS === */
 window.editKes = async (id,oldJenis)=>{
   const baru = prompt("Jenis baru:",oldJenis);
   if(baru) await updateDoc(doc(db,"kesDisiplin",id),{jenis:baru});
