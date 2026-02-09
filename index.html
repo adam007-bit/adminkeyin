@@ -23,7 +23,7 @@ th, td { text-align:center; }
   <form id="disciplineForm">
     <select id="kelas" class="form-select" required>
       <option value="">Pilih Kelas</option>
-      <option>5A</option><option>5B</option><option>5C</option>
+      <option>6 SARAH</option><option>6SUMAYYAH</option><option>6 KHADIJAH</option>
     </select>
     <select id="kategori" class="form-select" required>
       <option value="">Pilih Kategori</option>
@@ -66,42 +66,47 @@ th, td { text-align:center; }
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+  // 🔹 Import Firebase core
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 
-// 🔹 Ganti config ni dengan Firebase project kau
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+  // 🔹 Import Firestore (INI PENTING)
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    doc,
+    updateDoc,
+    deleteDoc
+  } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  // 🔹 Firebase config (yang kau dah ada)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDn8SLqrdo4f6IyD1nUSKmKkkHFcjem7uM",
+    authDomain: "bdp-semsira.firebaseapp.com",
+    projectId: "bdp-semsira",
+    storageBucket: "bdp-semsira.firebasestorage.app",
+    messagingSenderId: "784687342761",
+    appId: "1:784687342761:web:f1fe10571b4852c010f5b8",
+    measurementId: "G-LB617YSZ31"
+  };
 
-// Form
-const form = document.getElementById("disciplineForm");
-const msg = document.getElementById("msg");
-form.addEventListener("submit", async e=>{
-  e.preventDefault();
-  try{
-    await addDoc(collection(db,"kesDisiplin"),{
-      kelas: document.getElementById("kelas").value,
-      kategori: document.getElementById("kategori").value,
-      jenis: document.getElementById("jenis").value,
-      nama: document.getElementById("nama").value,
-      tarikh: new Date()
-    });
-    msg.innerText="✅ Kes berjaya direkod!";
-    form.reset();
-  }catch(err){
-    msg.innerText="❌ Ralat berlaku!";
-    console.error(err);
-  }
-});
+  // 🔹 Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+
+  // 🔹 Initialize Firestore
+  const db = getFirestore(app);
+
+  // 🔹 Export (kalau guna fail berasingan)
+  window.db = db;
+  window.collection = collection;
+  window.addDoc = addDoc;
+  window.getDocs = getDocs;
+  window.doc = doc;
+  window.updateDoc = updateDoc;
+  window.deleteDoc = deleteDoc;
+</script>
+
 
 // Chart
 const barCtx = document.getElementById("barChart").getContext("2d");
